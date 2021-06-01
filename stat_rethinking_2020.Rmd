@@ -1,0 +1,83 @@
+---
+title: "Rethinking Stats"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+grid.size <- 100
+
+# define grid
+p_grid <- seq( from=0 , to=1 , length.out=grid.size )
+
+calc_posterior <- function ( x , size , prior=rep( 1 , 100 ) ) {
+  
+  # define prior
+  prior <- prior
+  # compute likelihood at each value in grid
+  likelihood <- dbinom( x , size=size , prob=p_grid )
+  # compute product of likelihood and prior
+  unstd.posterior <- likelihood * prior
+  # standardize the posterior, so it sums to 1
+  posterior <- unstd.posterior / sum(unstd.posterior)
+  
+  plot( p_grid , posterior , type="b" ,
+    xlab="probability of water" , ylab="posterior probability" )
+    mtext( "100 points" )
+  return(posterior)
+}
+```
+
+```{r}
+
+calc_posterior( 6 , 9 )
+
+```
+
+```{r}
+prior <- ifelse( p_grid < 0.5 , 0 , 1 )
+
+calc_posterior( 6 , 9 , prior )
+
+prior <- exp( -5*abs( p_grid - 0.5 ) )
+
+calc_posterior( 6 , 9 , prior )
+
+```
+```{r}
+#Q 2M1
+#(1) W, W, W
+calc_posterior( 3 , 3 , prior )
+#(2) W, W, W, L
+calc_posterior( 3 , 4 , prior )
+#(3) L, W, W, L, W, W, W
+calc_posterior( 5 , 7 , prior )
+
+```
+```{r}
+#Q 2M2
+
+prior <- ifelse( p_grid < 0.5 , 0 , 1 )
+
+#(1) W, W, W
+calc_posterior( 3 , 3 , prior )
+#(2) W, W, W, L
+calc_posterior( 3 , 4 , prior )
+#(3) L, W, W, L, W, W, W
+calc_posterior( 5 , 7 , prior )
+
+```
+
+```{r}
+
+  # define prior
+  prior <- prior
+  # compute likelihood at each value in grid
+  likelihood <- dbinom( 1 , size=1 , prob=0.3 )
+  # compute product of likelihood and prior
+  unstd.posterior <- likelihood * prior
+  # standardize the posterior, so it sums to 1
+  posterior <- unstd.posterior / sum(unstd.posterior)
+
+```
+
