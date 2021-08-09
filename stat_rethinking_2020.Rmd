@@ -13,7 +13,7 @@ output: html_document
 # devtools::install_github("rmcelreath/rethinking")
 ```
 
-##Chapter one 
+##Chapter one
 
 ```{r setup, include=FALSE}
 
@@ -43,33 +43,44 @@ calc_posterior <- function(x, size, prior = rep(1, 100), grid.size = grid_size) 
 
 ```{r}
 
-calc_posterior(6, 9)
+calc_posterior( 6 , 9 , grid.size = grid.size )
+
 ```
 
 ```{r}
 prior <- ifelse(p_grid < 0.5, 0, 1)
 
-calc_posterior(6, 9, prior)
+calc_posterior( 6 , 9 , prior, grid.size=grid.size )
 
-prior <- exp(-5 * abs(p_grid - 0.5))
+prior <- exp( -5*abs( p_grid - 0.5 ) )
+
+calc_posterior( 6 , 9 , prior, grid.size=grid.size )
 
 calc_posterior(6, 9, prior)
 ```
 
 ```{r}
-# Q 2M1
-# (1) W, W, W
-calc_posterior(3, 3, prior)
-# (2) W, W, W, L
-calc_posterior(3, 4, prior)
-# (3) L, W, W, L, W, W, W
-calc_posterior(5, 7, prior)
+#Q 2M1
+#(1) W, W, W
+calc_posterior( 3 , 3 , prior, grid.size=grid.size )
+#(2) W, W, W, L
+calc_posterior( 3 , 4 , prior, grid.size=grid.size )
+#(3) L, W, W, L, W, W, W
+calc_posterior( 5 , 7 , prior, grid.size=grid.size )
+
 ```
 
 ```{r}
 # Q 2M2
 
-prior <- ifelse(p_grid < 0.5, 0, 1)
+prior <- ifelse( p_grid < 0.5 , 0 , 1 )
+
+#(1) W, W, W
+calc_posterior( 3 , 3 , prior, grid.size=grid.size )
+#(2) W, W, W, L
+calc_posterior( 3 , 4 , prior, grid.size=grid.size )
+#(3) L, W, W, L, W, W, W
+calc_posterior( 5 , 7 , prior, grid.size=grid.size )
 
 # (1) W, W, W
 calc_posterior(3, 3, prior)
@@ -210,7 +221,71 @@ HPDI(samples, 0.9)
 
 ```{r}
 
+w <- rbinom( 1e4 , size=15 , prob=samples )
 
+simplehist( w )
+
+p <- table(w)/1e4
+
+p[9]
 
 ```
 
+### 3M4. Using the posterior distribution constructed from the new (8/15) data, now calculate the probability of observing 6 water in 9 tosses.
+
+```{r}
+
+w <- rbinom( 1e4 , size=9 , prob=samples )
+
+simplehist( w )
+
+p <- table(w)/1e4
+
+p[7]
+
+```
+
+### 3M5. Start over at 3M1, but now use a prior that is zero below p = 0.5 and a constant above p = 0.5.This corresponds to prior information that a majority of the Earth’s surface is water. Repeat each problem above and compare the inferences. What difference does the better prior make? If it helps, compare inferences (using both priors) to the true value p = 0.7.
+
+```{r}
+
+n_water <- 8
+n <- 15
+grid.size <- 1e4
+
+prior <- ifelse( p_grid < 0.5 , 0 , 1 )
+
+calc_posterior( n_water, n, prior, grid.size )
+
+samples <- sample( p_grid, size=grid.size, prob=posterior, replace = T )
+
+HPDI( samples, 0.9 )
+
+# 3M3
+
+w <- rbinom( 1e4 , size=15 , prob=samples )
+
+simplehist( w )
+
+p <- table(w)/1e4
+
+p[9]
+
+# 3M4
+
+w <- rbinom( 1e4 , size=9 , prob=samples )
+
+simplehist( w )
+
+p <- table(w)/1e4
+
+p[7]
+
+```
+
+
+
+
+
+
+```
