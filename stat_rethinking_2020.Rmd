@@ -2,86 +2,93 @@
 title: "Rethinking Stats"
 output: html_document
 ---
+```{r}
+
+# devtools::install_github("stan-dev/cmdstanr")
+
+# cmdstanr::check_cmdstan_toolchain(fix = TRUE)
+# cmdstanr::install_cmdstan()
+
+# install.packages(c("coda","mvtnorm","devtools","loo","dagitty"))
+# devtools::install_github("rmcelreath/rethinking")
+```
 
 ##Chapter one 
 
 ```{r setup, include=FALSE}
 
-grid.size <- 100
+grid_size <- 100
 
-calc_posterior <- function ( x , size , prior=rep( 1 , 100 ), grid.size ) {
-  
+calc_posterior <- function(x, size, prior = rep(1, 100), grid.size = grid_size) {
+
   # define grid
-  p_grid <<- seq( from=0 , to=1 , length.out=grid.size )
+  p_grid <<- seq(from = 0, to = 1, length.out = grid.size)
   # define prior
-  prior <<- prior
+  # prior <<- prior
   # compute likelihood at each value in grid
-  likelihood <<- dbinom( x , size=size , prob=p_grid )
+  likelihood <<- dbinom(x, size = size, prob = p_grid)
   # compute product of likelihood and prior
   unstd.posterior <<- likelihood * prior
   # standardize the posterior, so it sums to 1
   posterior <<- unstd.posterior / sum(unstd.posterior)
-  
-  plot( p_grid , posterior , type="b" ,
-    xlab="probability of water" , ylab="posterior probability" )
-    mtext( "100 points" )
+
+  plot(p_grid, posterior,
+    type = "b",
+    xlab = "probability of water", ylab = "posterior probability"
+  )
+  mtext("100 points")
   return(posterior)
 }
 ```
 
 ```{r}
 
-calc_posterior( 6 , 9 )
-
+calc_posterior(6, 9)
 ```
 
 ```{r}
-prior <- ifelse( p_grid < 0.5 , 0 , 1 )
+prior <- ifelse(p_grid < 0.5, 0, 1)
 
-calc_posterior( 6 , 9 , prior )
+calc_posterior(6, 9, prior)
 
-prior <- exp( -5*abs( p_grid - 0.5 ) )
+prior <- exp(-5 * abs(p_grid - 0.5))
 
-calc_posterior( 6 , 9 , prior )
-
+calc_posterior(6, 9, prior)
 ```
 
 ```{r}
-#Q 2M1
-#(1) W, W, W
-calc_posterior( 3 , 3 , prior )
-#(2) W, W, W, L
-calc_posterior( 3 , 4 , prior )
-#(3) L, W, W, L, W, W, W
-calc_posterior( 5 , 7 , prior )
-
+# Q 2M1
+# (1) W, W, W
+calc_posterior(3, 3, prior)
+# (2) W, W, W, L
+calc_posterior(3, 4, prior)
+# (3) L, W, W, L, W, W, W
+calc_posterior(5, 7, prior)
 ```
 
 ```{r}
-#Q 2M2
+# Q 2M2
 
-prior <- ifelse( p_grid < 0.5 , 0 , 1 )
+prior <- ifelse(p_grid < 0.5, 0, 1)
 
-#(1) W, W, W
-calc_posterior( 3 , 3 , prior )
-#(2) W, W, W, L
-calc_posterior( 3 , 4 , prior )
-#(3) L, W, W, L, W, W, W
-calc_posterior( 5 , 7 , prior )
-
+# (1) W, W, W
+calc_posterior(3, 3, prior)
+# (2) W, W, W, L
+calc_posterior(3, 4, prior)
+# (3) L, W, W, L, W, W, W
+calc_posterior(5, 7, prior)
 ```
 
 ```{r}
 
-  # define prior
-  prior <- prior
-  # compute likelihood at each value in grid
-  likelihood <- dbinom( 1 , size=1 , prob=0.3 )
-  # compute product of likelihood and prior
-  unstd.posterior <- likelihood * prior
-  # standardize the posterior, so it sums to 1
-  posterior <- unstd.posterior / sum(unstd.posterior)
-
+# define prior
+prior <- prior
+# compute likelihood at each value in grid
+likelihood <- dbinom(1, size = 1, prob = 0.3)
+# compute product of likelihood and prior
+unstd.posterior <- likelihood * prior
+# standardize the posterior, so it sums to 1
+posterior <- unstd.posterior / sum(unstd.posterior)
 ```
 
 ##Chapter two
@@ -89,32 +96,29 @@ calc_posterior( 5 , 7 , prior )
 ##Chapter three
 
 ```{r}
-p_grid <- seq( from=0 , to=1 , length.out=1000 )
-prior <- rep( 1 , 1000 )
-likelihood <- dbinom( 6 , size=9 , prob=p_grid )
+p_grid <- seq(from = 0, to = 1, length.out = 1000)
+prior <- rep(1, 1000)
+likelihood <- dbinom(6, size = 9, prob = p_grid)
 unstd.posterior <- likelihood * prior
 posterior <- unstd.posterior / sum(posterior)
 
 sample.size <- 1e4
 
 set.seed(100)
-samples <- sample( p_grid , prob=posterior , size=sample.size , replace=TRUE )
-
+samples <- sample(p_grid, prob = posterior, size = sample.size, replace = TRUE)
 ```
 
 
 ```{r}
-plot( p_grid, posterior )
+plot(p_grid, posterior)
 
-plot( samples )
-
+plot(samples)
 ```
 
 ```{r}
 library(rethinking)
 
-dens( samples )
-
+dens(samples)
 ```
 
 ## Intervals of defined boundaries
@@ -123,11 +127,10 @@ dens( samples )
 
 ```{r}
 # add up posterior probability where p < 0.5
-sum( posterior[ p_grid < 0.5 ] )
+sum(posterior[p_grid < 0.5])
 
 # the same calculation, using samples from the posterior
-sum( samples < 0.5 ) / sample.size
-
+sum(samples < 0.5) / sample.size
 ```
 
 ### How much posterior probability lies between two parameter values?
@@ -135,8 +138,7 @@ sum( samples < 0.5 ) / sample.size
 ```{r}
 # how much posterior probability lies between 0.5 and 0.75:
 
-sum( samples > 0.5 & samples < 0.75 ) / sample.size
-
+sum(samples > 0.5 & samples < 0.75) / sample.size
 ```
 
 ## Intervals of defined mass
@@ -144,12 +146,11 @@ sum( samples > 0.5 & samples < 0.75 ) / sample.size
 ```{r}
 # you want to know the boundaries of the lower 80% posterior probability. You know this interval starts at p = 0. To find out where it stops, think of the samples as data and ask where the 80th percentile lies.
 
-quantile( samples , 0.8 )
+quantile(samples, 0.8)
 
 # Similarly, the middle 80% interval lies between the 10th percentile and the 90th percentile. These boundaries are found using the same approach
 
-quantile( samples , c( 0.1 , 0.9 ) )
-
+quantile(samples, c(0.1, 0.9))
 ```
 
 
@@ -158,20 +159,19 @@ quantile( samples , c( 0.1 , 0.9 ) )
 ### 3E3. How much posterior probability lies between p = 0.2 and p = 0.8?
 
 ```{r}
-`3E1` <- sum( posterior[p_grid < 0.2] )
-`3E2` <- sum( posterior[p_grid > 0.8] )
-`3E3` <- sum( posterior[p_grid > 0.2 & p_grid < 0.8] )
+`3E1` <- sum(posterior[p_grid < 0.2])
+`3E2` <- sum(posterior[p_grid > 0.8])
+`3E3` <- sum(posterior[p_grid > 0.2 & p_grid < 0.8])
 
-`3E1` + `3E2` + `3E3` 
+`3E1` + `3E2` + `3E3`
 ```
 
 ### 3E4. 20% of the posterior probability lies below which value of p?
 ### 3E5. 20% of the posterior probability lies above which value of p?
 
 ```{r}
-quantile( samples, 0.2 )
-quantile( samples, 0.8 )
-
+quantile(samples, 0.2)
+quantile(samples, 0.8)
 ```
 
 ### 3E6. Which values of p contain the narrowest interval equal to 66% of the posterior probability?
@@ -179,10 +179,9 @@ quantile( samples, 0.8 )
 
 ```{r}
 
-HPDI( samples, prob = 0.66 )
+HPDI(samples, prob = 0.66)
 
-PI( samples, prob = 0.66 )
-
+PI(samples, prob = 0.66)
 ```
 
 ### 3M1. Suppose the globe tossing data had turned out to be 8 water in 15 tosses. Construct the posterior distribution, using grid approximation. Use the same flat prior as before.
@@ -192,8 +191,7 @@ n_water <- 8
 n <- 15
 grid.size <- 1e4
 
-calc_posterior( n_water, n, rep(1, grid.size), grid.size )
-
+calc_posterior(n_water, n, rep(1, grid.size), grid.size)
 ```
 
 ### 3M2. Draw 10,000 samples from the grid approximation from above. Then use the samples to calculate the 90% HPDI for p.
@@ -203,18 +201,16 @@ calc_posterior( n_water, n, rep(1, grid.size), grid.size )
 sample.size <- 1e4
 
 set.seed(100)
-samples <- sample( p_grid , prob=posterior , size=sample.size , replace=TRUE )
+samples <- sample(p_grid, prob = posterior, size = sample.size, replace = TRUE)
 
-HPDI( samples, 0.9 )
-
+HPDI(samples, 0.9)
 ```
 
 ### 3M3. Construct a posterior predictive check for this model and data. This means simulate the distribution of samples, averaging over the posterior uncertainty in p. What is the probability of observing 8 water in 15 tosses?
 
+```{r}
 
 
 
-
-
-
+```
 
