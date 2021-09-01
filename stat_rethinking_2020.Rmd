@@ -85,6 +85,9 @@ posterior <- unstd.posterior / sum(unstd.posterior)
 
 ##Chapter two
 
+
+
+
 ##Chapter three
 
 ```{r}
@@ -113,7 +116,7 @@ library(rethinking)
 dens(samples)
 ```
 
-## Intervals of defined boundaries
+### Intervals of defined boundaries
 
 ### How much posterior probability lies below some parameter value?
 
@@ -133,7 +136,7 @@ sum(samples < 0.5) / sample.size
 sum(samples > 0.5 & samples < 0.75) / sample.size
 ```
 
-## Intervals of defined mass
+### Intervals of defined mass
 
 ```{r}
 # you want to know the boundaries of the lower 80% posterior probability. You know this interval starts at p = 0. To find out where it stops, think of the samples as data and ask where the 80th percentile lies.
@@ -277,7 +280,7 @@ PI( samples, prob=0.99 )
 
 ```{r}
 
-data(homeworkch3) 
+data(homeworkch3)
 
 n_boys <- 1
 n_births <- 1
@@ -288,6 +291,17 @@ prior <- rep(1,grid.size)
 calc_posterior( n_boys, n_births, prior, grid.size )
 
 # the value of one maximises the posterior probability of a birth being a boy
+##Chapter four
+
+### coin flipping on the football pitch
+
+```{r}
+
+# runif(16, -1, 1) = uniform distribution between -1 and 1 with 16 observations
+
+pos <- replicate( 1000 , sum( runif(16,-1,1) ) )
+
+plot(density(pos))
 
 ```
 
@@ -325,18 +339,122 @@ dens(b)
 
 ```{r}
 
-sum(birth1)  
+sum(birth1)
 
 b <- rbinom( 1e4 , size=100 , prob=samples )
 dens( b )
 
 ```
 
-### 3H5 
+### 3H5
 
 ```{r}
 
 
 
+### 4E1. In the model definition below, which line is the likelihood?
+yi ∼ Normal(µ, σ)
+µ ∼ Normal(0, 10)
+σ ∼ Exponential(1)
+### 4E2. In the model definition just above, how many parameters are in the posterior distribution?
+
+```{r}
+#4E1
+yi <- "likelihood"
+µ <- "µ prior"
+σ <- "σ prior"
+
+#4E2
+# two parameters (µ and σ) in the posterior distribution
+
 ```
 
+### 4E. Using the model definition above, write down the appropriate form of Bayes’ theorem that includes the proper likelihood and priors.
+
+Bayes' theorem = probability of the data * prior / average probability of the data
+
+Normal(µ, σ) * Normal(0, 10) * σ ∼ Exponential(1) /
+sum(Normal(µ, σ) * Normal(0, 10) * σ ∼ Exponential(1))
+
+```{r}
+
+#what is bayes' theorem?
+# E.g. calculating the pr of 6 waters in 9 tosses
+w <- 6; n <- 9;
+p_grid <- seq(from=0,to=1,length.out=100)
+posterior <- dbinom(w,n,p_grid)*dunif(p_grid,0,1)
+posterior <- posterior/sum(posterior)
+
+# E.g. calculating the probabilty of a person being a vampire if they test positive to a vampirism test
+
+Pr_Positive_Vampire <- 0.95
+Pr_Positive_Mortal <- 0.01
+Pr_Vampire <- 0.001
+Pr_Positive <- Pr_Positive_Vampire * Pr_Vampire +
+Pr_Positive_Mortal * ( 1 - Pr_Vampire )
+( Pr_Vampire_Positive <- Pr_Positive_Vampire*Pr_Vampire / Pr_Positive )
+
+
+
+```
+
+##4M1. For the model definition below, simulate observed y values from the prior (not the posterior). I.e. Prior predictive check
+yi ∼ Normal(µ, σ)
+µ ∼ Normal(0, 10)
+σ ∼ Exponential(1)
+
+##4M2. Translate the model just above into a quap formula.
+
+```{r}
+
+#4M1
+
+sample_mu <- rnorm( 1e4 , 0 , 10 )
+sample_sigma <- rexp( 1e4 , 1 )
+prior_y <- rnorm( 1e4 , sample_mu , sample_sigma )
+dens( prior_y )
+
+
+data(Howell1)
+d <- Howell1
+d2 <- d[ d$age >= 18 , ]
+
+#4M2
+
+flist <- alist(
+  height ~ dnorm( mu , sigma ) ,
+  mu ~ dnorm( 0 , 10 ) ,
+  sigma ~ dexp( 1 )
+)
+
+m4.1 <- quap( flist , data=d2 )
+
+precis( m4.1 )
+
+
+
+```
+
+## 4M3. Translate the quap model formula below into a mathematical model definition.
+
+y ~ dnorm( mu , sigma ),
+mu <- a + b*x,
+a ~ dnorm( 0 , 10 ),
+b ~ dunif( 0 , 1 ),
+sigma ~ dexp( 1 )
+
+yi ~ Normal( mu, sigma)
+mu = a + b*x
+a ~ Normal( 0, 10 )
+b ~ Uniform( 0, 1 )
+sigma ~ Exponential( 1 )
+
+## 4M4. A sample of students is measured for height each year for 3 years. After the third year, you want to fit a linear regression predicting height using year as a predictor. Write down the mathematical model definition for this regression, using any variable names and priors you choose. Be prepared to defend your choice of priors.
+
+where yi = year of measurement
+
+hi ∼ Normal(µi, σ) [likelihood]
+µi = α + β*yi [linear model]
+α ∼ Normal(178, 20) [α prior]
+β ∼ Normal(0, 10) [β prior]
+σ ∼ Uniform(0, 50) [σ prior]
