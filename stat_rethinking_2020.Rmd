@@ -19,26 +19,7 @@ output: html_document
 
 grid_size <- 100
 
-calc_posterior <- function(x, size, prior = rep(1, 100), grid.size = grid_size) {
-
-  # define grid
-  p_grid <<- seq(from = 0, to = 1, length.out = grid.size)
-  # define prior
-  # prior <<- prior
-  # compute likelihood at each value in grid
-  likelihood <<- dbinom(x, size = size, prob = p_grid)
-  # compute product of likelihood and prior
-  unstd.posterior <<- likelihood * prior
-  # standardize the posterior, so it sums to 1
-  posterior <<- unstd.posterior / sum(unstd.posterior)
-
-  plot(p_grid, posterior,
-    type = "b",
-    xlab = "probability of water", ylab = "posterior probability"
-  )
-  mtext("100 points")
-  return(posterior)
-}
+source(here::here('R', 'utils.R'))
 ```
 
 ```{r}
@@ -56,7 +37,7 @@ prior <- exp( -5*abs( p_grid - 0.5 ) )
 
 calc_posterior( 6 , 9 , prior, grid.size=grid.size )
 
-calc_posterior(6, 9, prior)
+calc_posterior(6, 9, prior, grid.size=grid.size)
 ```
 
 ```{r}
@@ -83,11 +64,11 @@ calc_posterior( 3 , 4 , prior, grid.size=grid.size )
 calc_posterior( 5 , 7 , prior, grid.size=grid.size )
 
 # (1) W, W, W
-calc_posterior(3, 3, prior)
+calc_posterior(3, 3, prior, grid.size=grid.size )
 # (2) W, W, W, L
-calc_posterior(3, 4, prior)
+calc_posterior(3, 4, prior, grid.size=grid.size )
 # (3) L, W, W, L, W, W, W
-calc_posterior(5, 7, prior)
+calc_posterior(5, 7, prior, grid.size=grid.size )
 ```
 
 ```{r}
@@ -283,9 +264,79 @@ p[7]
 
 ```
 
+### 3M6 *
+
+```{r}
+
+quantile( samples , c(0.99, 1) )
+
+PI( samples, prob=0.99 )
+
+```
+### 3H1
+
+```{r}
+
+data(homeworkch3) 
+
+n_boys <- 1
+n_births <- 1
+grid.size <- 1e4
+
+prior <- rep(1,grid.size)
+
+calc_posterior( n_boys, n_births, prior, grid.size )
+
+# the value of one maximises the posterior probability of a birth being a boy
+
+```
+
+### 3H2
+
+```{r}
+
+samples <- sample( p_grid, size=1e4, replace=T, prob=posterior )
+
+HPDI( samples, prob=0.5 )
+HPDI( samples, prob=0.89 )
+HPDI( samples, prob=0.97 )
+
+```
+### 3H3
+
+```{r}
+
+b <- rbinom( 1e4 , size=200 , prob=samples )
+simplehist( b )
+
+p <- table(b)/1e4
+
+p
+
+dens(b)
+
+#does the model include 111 boys as a central likely outcome? no, the model is skewed towards 200 boys in 200 births
+
+```
 
 
+
+### 3H4
+
+```{r}
+
+sum(birth1)  
+
+b <- rbinom( 1e4 , size=100 , prob=samples )
+dens( b )
+
+```
+
+### 3H5 
+
+```{r}
 
 
 
 ```
+
