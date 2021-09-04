@@ -2,6 +2,7 @@
 title: "Rethinking Stats"
 output: html_document
 ---
+
 ```{r}
 
 # devtools::install_github("stan-dev/cmdstanr")
@@ -18,6 +19,8 @@ output: html_document
 ```{r setup, include=FALSE}
 
 grid_size <- 100
+
+library(rethinking)
 
 source(here::here('R', 'utils.R'))
 ```
@@ -84,10 +87,6 @@ posterior <- unstd.posterior / sum(unstd.posterior)
 ```
 
 ##Chapter two
-
-
-
-
 ##Chapter three
 
 ```{r}
@@ -348,9 +347,67 @@ dens( b )
 
 ### 3H5
 
+#Chapter four
+
+##prior predictive checks
+
+###how do you values for the mean and standard deviation of a guassian likelihood distribution?
+####this depends on the context and problem. E.g. when trying to model human height
+####mean - what's a reasonable mean height range for a human?
+####standard deviation - when you increase the standard deviation you 'flatten' a gaussian distribution i.e. you 'spread' the probability density over a 
+####greater range of values. i.e. a standard deviation of 50cm implies that height lies within 100cm of the average height
+
+###how do you choose values for the mean and standard deviation of a guassian prior?
+####what range of values would you expect 95% of your probability mass to fall between? 
+####e.g. for human height - 178 +- 40cm, therefore, mean = 178 and standard deviation of 20
+####how do you values for the
+
 ```{r}
 
+#plot the priors individually
 
+hi ∼ Normal(µ, σ)
+µ ∼ Normal(178, 20) #AKA - a broad Guassian prior, centred on 178cm, with 95% probabilty between 178+-40cm. Seems reasonable for human height.
+σ ∼ Uniform(0, 50) #a flat prior just constrains sigma to have a positive probabilty between min and max. A uniform prior of min (0) and max (50) 
+
+curve( dnorm( x , 178 , 100 ) , from=100 , to=250 )
+
+curve( dunif( x , 0 , 100 ) , from=-10 , to=110 ) 
+
+sample_mu <- rnorm( 1e4 , 178 , 20 )
+sample_sigma <- runif( 1e4 , 0 , 50 )
+prior_h <- rnorm( 1e4 , sample_mu , sample_sigma )
+dens( prior_h )
+
+```
+
+##Grid approximation of the posterior distribution
+###for any real problem you always estimate/approximate the posterior distrubtion using other methods e.g. quadratic approximation. However, its good
+###to understand the target of the estimates using the brute force method first i.e. grid approximation
+
+
+```{r}
+
+mu.list <- seq( from=150, to=160 , length.out=100 )
+sigma.list <- seq( from=7 , to=9 , length.out=100 )
+post <- expand.grid( mu=mu.list , sigma=sigma.list )
+post$LL <- sapply( 1:nrow(post) , function(i) sum(
+dnorm( d2$height , post$mu[i] , post$sigma[i] , log=TRUE ) ) )
+post$prod <- post$LL + dnorm( post$mu , 178 , 20 , TRUE ) +
+dunif( post$sigma , 0 , 50 , TRUE )
+post$prob <- exp( post$prod - max(post$prod) )
+
+```
+
+```{r}
+contour_xyz( post$mu , post$sigma , post$prob )
+image_xyz( post$mu , post$sigma , post$prob )
+
+```
+
+
+
+```{r}
 
 ### 4E1. In the model definition below, which line is the likelihood?
 yi ∼ Normal(µ, σ)
@@ -452,9 +509,155 @@ sigma ~ Exponential( 1 )
 ## 4M4. A sample of students is measured for height each year for 3 years. After the third year, you want to fit a linear regression predicting height using year as a predictor. Write down the mathematical model definition for this regression, using any variable names and priors you choose. Be prepared to defend your choice of priors.
 
 where yi = year of measurement
+where ai = age
 
 hi ∼ Normal(µi, σ) [likelihood]
-µi = α + β*yi [linear model]
-α ∼ Normal(178, 20) [α prior]
-β ∼ Normal(0, 10) [β prior]
+µi = α + β*(ai-abar) [linear model]
+α ∼ Normal(100, 20) [α prior]
+β ∼ Log-Normal(0, 10) [β prior]
 σ ∼ Uniform(0, 50) [σ prior]
+
+```{r}
+
+#no student should get shorter as time progresses, therefore use a log normal distribution for the slop term (beta)
+sample_beta <- rlnorm( 1e4 , 0 , 10 )
+
+dens( sample_beta )
+
+sample_sigma <- runif( 1e4 , 0 , 50 )
+
+dens( sample_sigma )
+
+sample_alpha <- rnorm( 1e4, 100, 20 )
+
+dens( sample_alpha )
+
+
+# sample_mu <- rnorm( 1e4 , 0 , 10 )
+# sample_sigma <- rexp( 1e4 , 1 )
+# prior_y <- rnorm( 1e4 , sample_mu , sample_sigma )
+# dens( prior_y )
+
+```
+
+
+##4M5. Now suppose I remind you that every student got taller each year. Does this information lead you to change your choice of priors? How?
+
+## update the slope term (beta) to a log-normal distribution so no person has negative growth
+## β ∼ Log-Normal(0, 10) [β prior]
+
+## 4M6. Now suppose I tell you that the variance among heights for students of the same age is never more than 64cm. How does this lead you to revise your priors?
+
+µi = α + β*(ai-abar) [linear model]
+α ∼ Normal(100, 20) [α prior]
+β ∼ Log-Normal(0, 10) [β prior]
+
+## when ai - abar = 0 (students of the same age) you're left with alpha.    
+
+```{r}
+set.seed(2971)
+N <- 100
+
+a <- rnorm(N , 44 , 20)
+b <- rlnorm(N , 0 , 1)
+
+plot(
+  NULL ,
+  xlim = c(13, 16) ,
+  ylim = c(0, 200) ,
+  xlab = "age" ,
+  ylab = "height"
+)
+
+abline(h = 0 , lty = 2)
+abline(h = 272 , lty = 1 , lwd = 0.5)
+
+xbar <- 15
+
+for (i in 1:N)
+  curve(
+    a[i] + b[i] * (x - xbar) ,
+    from = 13 ,
+    to = 16 ,
+    add = TRUE ,
+    col = col.alpha("black", 0.2)
+  )
+
+
+```
+
+
+## 4M7. Refit model m4.3 from the chapter, but omit the mean weight xbar this time. Compare the new model’s posterior to that of the original model. In particular, look at the covariance among the parameters. What is different? Then compare the posterior predictions of both models.
+
+```{r}
+
+# load data again, since it's a long way back
+library(rethinking)
+data(Howell1)
+d <- Howell1
+d2 <- d[d$age >= 18 ,]
+# define the average weight, x-bar
+xbar <- mean(d2$weight)
+# fit model
+
+m4.3 <- quap(alist(
+  height ~ dnorm(mu , sigma) ,
+  mu <- a + b * (weight - xbar) ,
+  a ~ dnorm(178 , 20) ,
+  b ~ dlnorm(0 , 1) ,
+  sigma ~ dunif(0 , 50)
+) ,
+data = d2)
+
+m4.3b <- quap(alist(
+  height ~ dnorm(mu , sigma) ,
+  mu <- a + b * (weight) ,
+  a ~ dnorm(178 , 20) ,
+  b ~ dlnorm(0 , 1) ,
+  sigma ~ dunif(0 , 50)
+) ,
+data = d2)
+
+precis( m4.3 )
+precis( m4.3b )
+
+round( vcov( m4.3 ) , 3 )
+round( vcov( m4.3b ) , 3 )
+
+plot( height ~ weight , data=d2 , col=rangi2 )
+post <- extract.samples( m4.3 )
+a_map <- mean(post$a)
+b_map <- mean(post$b)
+curve( a_map + b_map*(x - xbar) , add=TRUE )
+
+plot( height ~ weight , data=d2 , col=rangi2 )
+post <- extract.samples( m4.3b )
+a_map <- mean(post$a)
+b_map <- mean(post$b)
+curve( a_map + b_map*(x) , add=TRUE )
+
+
+N <- 10
+dN <- d2[ 1:N , ]
+# extract 20 samples from the posterior
+post <- extract.samples(m4.3 , n = 20)
+# display raw data and sample size
+plot(
+  dN$weight ,
+  dN$height ,
+  xlim = range(d2$weight) ,
+  ylim = range(d2$height) ,
+  col = rangi2 ,
+  xlab = "weight" ,
+  ylab = "height"
+)
+mtext(concat("N = ", N))
+# plot the lines, with transparency
+for (i in 1:20)
+  curve(post$a[i] + post$b[i] * (x - mean(dN$weight)) ,
+        col = col.alpha("black", 0.3) ,
+        add = TRUE)
+
+
+```
+
