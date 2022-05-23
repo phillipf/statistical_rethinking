@@ -14,7 +14,7 @@ output: html_document
 # devtools::install_github("rmcelreath/rethinking")
 ```
 
-##Chapter one
+##Chapter two: Small Worlds and Large Worlds
 
 ```{r setup, include=FALSE}
 
@@ -27,52 +27,20 @@ source(here::here('R', 'utils.R'))
 
 ```{r}
 
-calc_posterior( 6 , 9 , grid.size = grid.size )
+calc_posterior( 6 , 9 , prior = rep(1, grid_size), grid.size = grid_size )
 
 ```
 
 ```{r}
 prior <- ifelse(p_grid < 0.5, 0, 1)
 
-calc_posterior( 6 , 9 , prior, grid.size=grid.size )
+calc_posterior( 6 , 9 , prior, grid.size=grid_size )
 
 prior <- exp( -5*abs( p_grid - 0.5 ) )
 
-calc_posterior( 6 , 9 , prior, grid.size=grid.size )
-
-calc_posterior(6, 9, prior, grid.size=grid.size)
+calc_posterior( 6 , 9 , prior, grid.size=grid_size )
 ```
 
-```{r}
-#Q 2M1
-#(1) W, W, W
-calc_posterior( 3 , 3 , prior, grid.size=grid.size )
-#(2) W, W, W, L
-calc_posterior( 3 , 4 , prior, grid.size=grid.size )
-#(3) L, W, W, L, W, W, W
-calc_posterior( 5 , 7 , prior, grid.size=grid.size )
-
-```
-
-```{r}
-# Q 2M2
-
-prior <- ifelse( p_grid < 0.5 , 0 , 1 )
-
-#(1) W, W, W
-calc_posterior( 3 , 3 , prior, grid.size=grid.size )
-#(2) W, W, W, L
-calc_posterior( 3 , 4 , prior, grid.size=grid.size )
-#(3) L, W, W, L, W, W, W
-calc_posterior( 5 , 7 , prior, grid.size=grid.size )
-
-# (1) W, W, W
-calc_posterior(3, 3, prior, grid.size=grid.size )
-# (2) W, W, W, L
-calc_posterior(3, 4, prior, grid.size=grid.size )
-# (3) L, W, W, L, W, W, W
-calc_posterior(5, 7, prior, grid.size=grid.size )
-```
 
 ```{r}
 
@@ -86,7 +54,82 @@ unstd.posterior <- likelihood * prior
 posterior <- unstd.posterior / sum(unstd.posterior)
 ```
 
-##Chapter two
+```{r}
+# compare the quadratic approximation to analytical calculation
+library(rethinking)
+globe.qa <- quap(
+  alist(
+    W ~ dbinom( W+L ,p) , # binomial likelihood
+    p ~ dunif(0,1) # uniform prior
+  ) ,
+  data=list(W=6,L=3) )
+# display summary of quadratic approximation
+precis( globe.qa )
+
+# analytical calculation
+W <- 6
+L <- 3
+curve( dbeta( x , W+1 , L+1 ) , from=0 , to=1 )
+# quadratic approximation
+curve( dnorm( x , 0.67 , 0.16 ) , lty=2 , add=TRUE )
+
+```
+
+```{r}
+n_samples <- 1000
+p <- rep( NA , n_samples )
+p[1] <- 0.5
+W <- 6
+L <- 3
+for ( i in 2:n_samples ) {
+  p_new <- rnorm( 1 , p[i-1] , 0.1 )
+  if ( p_new < 0 ) p_new <- abs( p_new )
+  if ( p_new > 1 ) p_new <- 2 - p_new
+  q0 <- dbinom( W , W+L , p[i-1] )
+  q1 <- dbinom( W , W+L , p_new )
+  p[i] <- ifelse( runif(1) < q1/q0 , p_new , p[i-1] )
+}
+
+dens( p , xlim=c(0,1) )
+curve( dbeta( x , W+1 , L+1 ) , lty=2 , add=TRUE )
+
+```
+
+```{r exercises}
+#Q 2M1
+#(1) W, W, W
+calc_posterior( 3 , 3 , prior = rep(1, grid_size), grid.size=grid_size )
+#(2) W, W, W, L
+calc_posterior( 3 , 4 , prior = rep(1, grid_size), grid.size=grid_size )
+#(3) L, W, W, L, W, W, W
+calc_posterior( 5 , 7 , prior = rep(1, grid_size), grid.size=grid_size )
+
+# Q 2M2
+
+prior <- ifelse( p_grid < 0.5 , 0 , 1 )
+
+#(1) W, W, W
+calc_posterior( 3 , 3 , prior, grid.size=grid_size )
+#(2) W, W, W, L
+calc_posterior( 3 , 4 , prior, grid.size=grid_size )
+#(3) L, W, W, L, W, W, W
+calc_posterior( 5 , 7 , prior, grid.size=grid_size )
+
+# Q 2M3
+
+# Pr(Earth|Land) = Pr(Land|Earth) * Pr(Earth) / Pr(Land)
+0.3 * 0.5 / ((1 + 0.3) / 2)
+
+# Q 2M4
+
+
+```
+
+```{r exercises}
+
+
+```
+
 ##Chapter three
 
 ```{r}
@@ -228,7 +271,7 @@ p[7]
 
 ```
 
-### 3M5. Start over at 3M1, but now use a prior that is zero below p = 0.5 and a constant above p = 0.5.This corresponds to prior information that a majority of the Earth’s surface is water. Repeat each problem above and compare the inferences. What difference does the better prior make? If it helps, compare inferences (using both priors) to the true value p = 0.7.
+### 3M5. Start over at 3M1, but now use a prior that is zero below p = 0.5 and a constant above p = 0.5. This corresponds to prior information that a majority of the Earth’s surface is water. Repeat each problem above and compare the inferences. What difference does the better prior make? If it helps, compare inferences (using both priors) to the true value p = 0.7.
 
 ```{r}
 
@@ -275,14 +318,15 @@ quantile( samples , c(0.99, 1) )
 PI( samples, prob=0.99 )
 
 ```
+
 ### 3H1
 
 ```{r}
 
 data(homeworkch3)
 
-n_boys <- 1
-n_births <- 1
+n_boys <- sum(birth1) + sum(birth2)
+n_births <- 200
 grid.size <- 1e4
 
 prior <- rep(1,grid.size)
@@ -293,6 +337,8 @@ calc_posterior( n_boys, n_births, prior, grid.size )
 ##Chapter four
 
 ### coin flipping on the football pitch
+```
+
 
 ```{r}
 
@@ -315,6 +361,7 @@ HPDI( samples, prob=0.89 )
 HPDI( samples, prob=0.97 )
 
 ```
+
 ### 3H3
 
 ```{r}
@@ -338,14 +385,29 @@ dens(b)
 
 ```{r}
 
-sum(birth1)
+n_boys <- sum(birth1)
+n_births <- 100
+grid.size <- 1e4
+
+calc_posterior( n_boys, n_births, prior = rep(1, grid.size), grid.size )
+
+samples <- sample( p_grid, size=1e4, replace=T, prob=posterior )
 
 b <- rbinom( 1e4 , size=100 , prob=samples )
+simplehist ( b )
 dens( b )
 
 ```
 
 ### 3H5
+
+```{r}
+
+n_boys <- birth2[birth1 == 0]
+sum(birth1 == 0)
+
+```
+
 
 #Chapter four
 
@@ -366,11 +428,11 @@ dens( b )
 
 #plot the priors individually
 
-hi ∼ Normal(µ, σ)
-µ ∼ Normal(178, 20) #AKA - a broad Guassian prior, centred on 178cm, with 95% probabilty between 178+-40cm. Seems reasonable for human height.
-σ ∼ Uniform(0, 50) #a flat prior just constrains sigma to have a positive probabilty between min and max. A uniform prior of min (0) and max (50) 
+#hi ∼ Normal(µ, σ)
+#µ ∼ Normal(178, 20) #AKA - a broad Guassian prior, centred on 178cm, with 95% probabilty between 178+-40cm. Seems reasonable for human height.
+#σ ∼ Uniform(0, 50) #a flat prior just constrains sigma to have a positive probabilty between min and max. A uniform prior of min (0) and max (50) 
 
-curve( dnorm( x , 178 , 100 ) , from=100 , to=250 )
+curve( dnorm( x , 178 , 20 ) , from=100 , to=250 )
 
 curve( dunif( x , 0 , 100 ) , from=-10 , to=110 ) 
 

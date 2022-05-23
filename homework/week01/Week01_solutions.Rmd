@@ -1,0 +1,49 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# 1. Suppose the globe tossing data (Chapter 2) had turned out to be 4 water in 15 tosses. Construct the posterior distribution, using grid approximation. Use the same flat prior as in the book. 
+
+```{r}
+
+n_water <- 4
+n_tosses <- 15
+
+p_grid <- seq(from = 0, to = 1, length.out = 1e3)
+#prior <- rep(1, 1e3)
+prior <- dbeta(p_grid, 3, 1)
+
+
+calc_posterior(n_water, n_tosses, prior, 1e3)
+
+```
+
+# 2. Start over in 1, but now use a prior that is zero below p = 0.5 and a con- stant above p = 0.5. This corresponds to prior information that a majority of the Earth’s surface is water. What difference does the better prior make?
+```{r}
+
+p_grid <- seq(from=0, to=1, length.out=1e3)
+prior <- ifelse( p_grid < 0.5, 0, 1 )
+
+likelihood <- dbinom(n_water, n_tosses, prob=p_grid)
+unstd.posterior <- likelihood * prior
+posterior <- unstd.posterior / sum(unstd.posterior)
+
+plot(p_grid, posterior,
+     type = "b",
+     xlab = "probability of water", ylab = "posterior probability"
+)
+
+```
+
+#3. For the posterior distribution from 2, compute 89% percentile and HPDI intervals. Compare the widths of these intervals. Which is wider? Why? If you had only the information in the interval, what might you misunderstand about the shape of the posterior distribution?
+
+```{r}
+
+samples <- sample(p_grid, prob = posterior, size = 1e3, replace = TRUE)
+
+PI(samples, prob=0.89)
+HPDI(samples, prob=0.89)
+
+```
+
