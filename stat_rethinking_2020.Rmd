@@ -23,6 +23,10 @@ grid_size <- 100
 library(rethinking)
 
 source(here::here('R', 'utils.R'))
+
+library(lemon)
+knit_print.data.frame <- lemon_print
+
 ```
 
 ```{r}
@@ -651,7 +655,7 @@ for (i in 1:N)
 
 ## 4M7. Refit model m4.3 from the chapter, but omit the mean weight xbar this time. Compare the new model’s posterior to that of the original model. In particular, look at the covariance among the parameters. What is different? Then compare the posterior predictions of both models.
 
-```{r}
+```{r,render=lemon_print}
 
 # load data again, since it's a long way back
 library(rethinking)
@@ -683,9 +687,21 @@ data = d2)
 precis( m4.3 )
 precis( m4.3b )
 
-round( vcov( m4.3 ) , 3 )
-round( vcov( m4.3b ) , 3 )
 
+```
+```{r}
+m4.3_vcov <- round( vcov( m4.3 ) , 3 )
+m4.3_vcov
+cov2cor(m4.3_vcov)
+
+m4.3b_vcov <- round( vcov( m4.3b ) , 3 )
+m4.3b_vcov
+cov2cor(m4.3b_vcov)
+
+# when you remove xbar (mean weight) alpha and beta become strongly negatively correlated
+
+```
+```{r}
 plot( height ~ weight , data=d2 , col=rangi2 )
 post <- extract.samples( m4.3 )
 a_map <- mean(post$a)
@@ -720,6 +736,28 @@ for (i in 1:20)
         col = col.alpha("black", 0.3) ,
         add = TRUE)
 
+N <- 10
+dN <- d2[ 1:N , ]
+# extract 20 samples from the posterior
+post <- extract.samples(m4.3b , n = 20)
+# display raw data and sample size
+plot(
+  dN$weight ,
+  dN$height ,
+  xlim = range(d2$weight) ,
+  ylim = range(d2$height) ,
+  col = rangi2 ,
+  xlab = "weight" ,
+  ylab = "height"
+)
+mtext(concat("N = ", N))
+# plot the lines, with transparency
+for (i in 1:20)
+  curve(post$a[i] + post$b[i] * (x) ,
+        col = col.alpha("black", 0.3) ,
+        add = TRUE)
+
+# the posterior predictions barely shift! why?
 
 ```
 
